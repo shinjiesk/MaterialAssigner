@@ -525,8 +525,6 @@ function Eyedropper.pickColor(settings, updateRadioButtons, dropdown, rTextBox, 
         transparencyTextBox.Text = string.format("%.2f", transparency)
         transparencySliderFill.Size = UDim2.new(transparency, 0, 1, 0)
     end
-
-    print("スポイト機能を使用しました。マテリアル:", material.Name, "バリアント:", materialVariant, "色:", color, "反射率:", reflectance, "透明度:", transparency)
 end
 
 
@@ -559,23 +557,18 @@ function MaterialAssigner.assignMaterial(settings)
             if settings.useDefaultMaterial and settings.selectedMaterial then
                 object.Material = Enum.Material[settings.selectedMaterial]
                 object.MaterialVariant = ""
-                print("デフォルトマテリアルを適用しました:", settings.selectedMaterial)
                 object.Color = settings.defaultColor
-                print("デフォルトカラーを適用しました:", settings.defaultColor)
             elseif not settings.useDefaultMaterial and settings.selectedVariant then
                 local variant = MaterialService:FindFirstChild(settings.selectedVariant, true)
                 if variant and variant:IsA("MaterialVariant") then
                     local baseMaterial = variant.BaseMaterial
                     if baseMaterial then
                         object.Material = baseMaterial
-                        print("Base Materialを適用しました:", baseMaterial.Name)
                     else
                         warn("Base Materialが見つかりません:", settings.selectedVariant)
                     end
                     object.MaterialVariant = variant.Name
-                    print("マテリアルバリアントを適用しました:", settings.selectedVariant)
                     object.Color = settings.variantColor
-                    print("バリアントカラーを適用しました:", settings.variantColor)
                 else
                     warn("マテリアルバリアントが見つかりません:", settings.selectedVariant)
                 end
@@ -587,8 +580,6 @@ function MaterialAssigner.assignMaterial(settings)
             
             object.Reflectance = reflectance
             object.Transparency = transparency
-            print("反射率を適用しました:", reflectance)
-            print("トランスペアレンシーを適用しました:", transparency)
 
             if object:IsA("UnionOperation") then
                 object.UsePartColor = true
@@ -859,5 +850,5 @@ local plugin = script.Parent
 initializePlugin(plugin)
 
 plugin.Unloading:Connect(function()
-	print("Unload Material Assigner Plugin")
+
 end)
