@@ -519,66 +519,79 @@ end
 local MaterialAssigner = {}
 
 function MaterialAssigner.assignMaterial(settings)
-	local selectedObjects = Selection:Get()
-	if #selectedObjects == 0 then
-		warn("オブジェクトが選択されていません。")
-		return
-	end
+    local selectedObjects = Selection:Get()
+    if #selectedObjects == 0 then
+        warn("オブジェクトが選択されていません。")
+        return
+    end
 
-	if settings.useDefaultMaterial and not settings.selectedMaterial then
-		warn("デフォルトマテリアルが選択されていません。")
-		return
-	elseif not settings.useDefaultMaterial and not settings.selectedVariant then
-		warn("マテリアルバリアントが選択されていません。")
-		return
-	end
+    if settings.useDefaultMaterial and not settings.selectedMaterial then
+        warn("デフォルトマテリアルが選択されていません。")
+        return
+    elseif not settings.useDefaultMaterial and not settings.selectedVariant then
+        warn("マテリアルバリアントが選択されていません。")
+        return
+    end
 
-	ChangeHistoryService:SetWaypoint("Before Material Assignment")
+    ChangeHistoryService:SetWaypoint("Before Material Assignment")
 
-	local function applyMaterialToObject(object)
-		if object:IsA("BasePart") then
-			if settings.useDefaultMaterial and settings.selectedMaterial then
-				object.Material = Enum.Material[settings.selectedMaterial]
-				object.MaterialVariant = ""
-				print("デフォルトマテリアルを適用しました:", settings.selectedMaterial)
-				object.Color = settings.defaultColor
-				print("デフォルトカラーを適用しました:", settings.defaultColor)
-			elseif not settings.useDefaultMaterial and settings.selectedVariant then
-				local variant = MaterialService:FindFirstChild(settings.selectedVariant, true)
-				if variant and variant:IsA("MaterialVariant") then
-					local baseMaterial = variant.BaseMaterial
-					if baseMaterial then
-						object.Material = baseMaterial
-						print("Base Materialを適用しました:", baseMaterial.Name)
-					else
-						warn("Base Materialが見つかりません:", settings.selectedVariant)
-					end
-					object.MaterialVariant = variant.Name
-					print("マテリアルバリアントを適用しました:", settings.selectedVariant)
-					object.Color = settings.variantColor
-					print("バリアントカラーを適用しました:", settings.variantColor)
-				else
-					warn("マテリアルバリアントが見つかりません:", settings.selectedVariant)
-				end
-			end
+    local function roundToTwoDecimals(value)
+        return tonumber(string.format("%.2f", value))
+    end
 
-			if object:IsA("UnionOperation") then
-				object.UsePartColor = true
-			end
-		elseif object:IsA("Model") then
-			for _, child in ipairs(object:GetDescendants()) do
-				if child:IsA("BasePart") then
-					applyMaterialToObject(child)
-				end
-			end
-		end
-	end
+    local function applyMaterialToObject(object)
+        if object:IsA("BasePart") then
+            if settings.useDefaultMaterial and settings.selectedMaterial then
+                object.Material = Enum.Material[settings.selectedMaterial]
+                object.MaterialVariant = ""
+                print("デフォルトマテリアルを適用しました:", settings.selectedMaterial)
+                object.Color = settings.defaultColor
+                print("デフォルトカラーを適用しました:", settings.defaultColor)
+            elseif not settings.useDefaultMaterial and settings.selectedVariant then
+                local variant = MaterialService:FindFirstChild(settings.selectedVariant, true)
+                if variant and variant:IsA("MaterialVariant") then
+                    local baseMaterial = variant.BaseMaterial
+                    if baseMaterial then
+                        object.Material = baseMaterial
+                        print("Base Materialを適用しました:", baseMaterial.Name)
+                    else
+                        warn("Base Materialが見つかりません:", settings.selectedVariant)
+                    end
+                    object.MaterialVariant = variant.Name
+                    print("マテリアルバリアントを適用しました:", settings.selectedVariant)
+                    object.Color = settings.variantColor
+                    print("バリアントカラーを適用しました:", settings.variantColor)
+                else
+                    warn("マテリアルバリアントが見つかりません:", settings.selectedVariant)
+                end
+            end
 
-	for _, object in ipairs(selectedObjects) do
-		applyMaterialToObject(object)
-	end
+            -- 反射率とトランスペアレンシーを適用（小数点以下2位まで正確に丸める）
+            local reflectance = roundToTwoDecimals(settings.reflectance or 0)
+            local transparency = roundToTwoDecimals(settings.transparency or 0)
+            
+            object.Reflectance = reflectance
+            object.Transparency = transparency
+            print("反射率を適用しました:", reflectance)
+            print("トランスペアレンシーを適用しました:", transparency)
 
-	ChangeHistoryService:SetWaypoint("After Material Assignment")
+            if object:IsA("UnionOperation") then
+                object.UsePartColor = true
+            end
+        elseif object:IsA("Model") then
+            for _, child in ipairs(object:GetDescendants()) do
+                if child:IsA("BasePart") then
+                    applyMaterialToObject(child)
+                end
+            end
+        end
+    end
+
+    for _, object in ipairs(selectedObjects) do
+        applyMaterialToObject(object)
+    end
+
+    ChangeHistoryService:SetWaypoint("After Material Assignment")
 end
 
 -- Main
