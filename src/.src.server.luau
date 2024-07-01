@@ -45,7 +45,9 @@ function SettingsManager.saveSettings(plugin, settings)
 		defaultColorB = settings.defaultColor and settings.defaultColor.B or 1,
 		variantColorR = settings.variantColor and settings.variantColor.R or 1,
 		variantColorG = settings.variantColor and settings.variantColor.G or 1,
-		variantColorB = settings.variantColor and settings.variantColor.B or 1
+		variantColorB = settings.variantColor and settings.variantColor.B or 1,
+        reflectance = settings.reflectance or 0,
+        transparency = settings.transparency or 0
 	}
 	local success, errorMsg = pcall(function()
 		plugin:SetSetting("MaterialAssignerSettings", settingsToSave)
@@ -80,13 +82,17 @@ function SettingsManager.loadSettings(plugin)
 			result.variantColorG or 1,
 			result.variantColorB or 1
 		)
+        result.reflectance = result.reflectance or 0
+        result.transparency = result.transparency or 0
 	end
 
 	return result or {
 		useDefaultMaterial = true,
 		selectedMaterial = "Plastic",
 		defaultColor = Color3.new(1, 1, 1),
-		variantColor = Color3.new(1, 1, 1)
+		variantColor = Color3.new(1, 1, 1),
+        reflectance = 0,
+        transparency = 0
 	}
 end
 
@@ -346,7 +352,7 @@ end
 
 
 
--- extra
+-- extra -------------------------------------------------------------------------------
 local extra = {}
 
 function extra.createSlider(name, yPosition, maxValue, parent)
@@ -385,11 +391,49 @@ function extra.createSlider(name, yPosition, maxValue, parent)
 	return label, textBox, slider, sliderFill
 end
 
+function extra.setupSliderBehavior(slider, sliderFill, textBox, updateCallback)
+    local isDragging = false
 
+    local function updateValue(x)
+        local percentage = math.clamp((x - slider.AbsolutePosition.X) / slider.AbsoluteSize.X, 0, 1)
+        local value = percentage
+        textBox.Text = string.format("%.2f", value)
+        sliderFill.Size = UDim2.new(percentage, 0, 1, 0)
+        if updateCallback and type(updateCallback) == "function" then
+            updateCallback(value)
+        end
+    end
 
+    slider.MouseButton1Down:Connect(function()
+        isDragging = true
+    end)
 
+    slider.MouseButton1Up:Connect(function()
+        isDragging = false
+    end)
 
+    slider.MouseLeave:Connect(function()
+        isDragging = false
+    end)
 
+    slider.MouseMoved:Connect(function(x, y)
+        if isDragging then
+            updateValue(x)
+        end
+    end)
+
+    textBox.FocusLost:Connect(function(enterPressed)
+        local value = tonumber(textBox.Text)
+        if value then
+            value = math.clamp(value, 0, 1)
+            textBox.Text = string.format("%.2f", value)
+            sliderFill.Size = UDim2.new(value, 0, 1, 0)
+            if updateCallback and type(updateCallback) == "function" then
+                updateCallback(value)
+            end
+        end
+    end)
+end
 
 
 
@@ -588,6 +632,29 @@ local function initializePlugin(plugin)
     local ReflectanceLabel, ReflectanceTextBox, ReflectanceSlider, ReflectanceSliderFill = extra.createSlider("Reflectance", 10,100,extraFrame)
     local TranceparencyLabel, TranceparencyTextBox, TranceparencySlider, TranceparencySliderFill = extra.createSlider("Tranceparency", 40,100,extraFrame)
 
+    local function updateReflectance(value)
+        settings.reflectance = value
+        -- ここで必要に応じて他の処理を追加
+    end
+
+    local function updateTransparency(value)
+        settings.transparency = value
+        -- ここで必要に応じて他の処理を追加
+    end
+
+    extra.setupSliderBehavior(ReflectanceSlider, ReflectanceSliderFill, ReflectanceTextBox, updateReflectance)
+    extra.setupSliderBehavior(TranceparencySlider, TranceparencySliderFill, TranceparencyTextBox, updateTransparency)
+    
+
+    -- 初期値の設定
+    ReflectanceTextBox.Text = string.format("%.2f", settings.reflectance or 0)
+    ReflectanceSliderFill.Size = UDim2.new(settings.reflectance or 0, 0, 1, 0)
+    TranceparencyTextBox.Text = string.format("%.2f", settings.transparency or 0)
+    TranceparencySliderFill.Size = UDim2.new(settings.transparency or 0, 0, 1, 0)
+
+
+
+    
     -- Buttons -----------------------------------------------
 	local applyButton = UICreator.createButton("適用", UDim2.new(0, 100, 0, 30), UDim2.new(1, -110, 1, -40), frame)
 
