@@ -436,84 +436,99 @@ function extra.setupSliderBehavior(slider, sliderFill, textBox, updateCallback)
 end
 
 
-
 -- Eyedropper
 local Eyedropper = {}
 
-function Eyedropper.pickColor(settings, updateRadioButtons, dropdown, rTextBox, gTextBox, bTextBox, hTextBox, sTextBox, vTextBox, colorDisplay, rSliderFill, gSliderFill, bSliderFill, hSliderFill, sSliderFill, vSliderFill)
-	local selectedObjects = Selection:Get()
-	if #selectedObjects == 0 then
-		warn("オブジェクトが選択されていません。")
-		return
-	end
+function Eyedropper.pickColor(settings, updateRadioButtons, dropdown, rTextBox, gTextBox, bTextBox, hTextBox, sTextBox, vTextBox, colorDisplay, rSliderFill, gSliderFill, bSliderFill, hSliderFill, sSliderFill, vSliderFill, reflectanceTextBox, reflectanceSliderFill, transparencyTextBox, transparencySliderFill)
+    local selectedObjects = Selection:Get()
+    if #selectedObjects == 0 then
+        warn("オブジェクトが選択されていません。")
+        return
+    end
 
-	local function findFirstBasePart(obj)
-		if obj:IsA("BasePart") then
-			return obj
-		elseif obj:IsA("Model") then
-			for _, child in ipairs(obj:GetDescendants()) do
-				if child:IsA("BasePart") then
-					return child
-				end
-			end
-		end
-		return nil
-	end
+    local function findFirstBasePart(obj)
+        if obj:IsA("BasePart") then
+            return obj
+        elseif obj:IsA("Model") then
+            for _, child in ipairs(obj:GetDescendants()) do
+                if child:IsA("BasePart") then
+                    return child
+                end
+            end
+        end
+        return nil
+    end
 
-	local object = findFirstBasePart(selectedObjects[1])
-	if not object then
-		warn("選択されたオブジェクトまたはその子オブジェクトにBasePartが見つかりません。")
-		return
-	end
+    local object = findFirstBasePart(selectedObjects[1])
+    if not object then
+        warn("選択されたオブジェクトまたはその子オブジェクトにBasePartが見つかりません。")
+        return
+    end
 
-	local material = object.Material
-	local materialVariant = object.MaterialVariant
-	local color = object.Color
+    local material = object.Material
+    local materialVariant = object.MaterialVariant
+    local color = object.Color
+    local reflectance = object.Reflectance
+    local transparency = object.Transparency
 
-	if materialVariant ~= "" then
-		settings.useDefaultMaterial = false
-		settings.selectedVariant = materialVariant
-		updateRadioButtons(false)
-		dropdown.Text = materialVariant
-	else
-		settings.useDefaultMaterial = true
-		settings.selectedMaterial = material.Name
-		updateRadioButtons(true)
-		dropdown.Text = material.Name
-	end
+    if materialVariant ~= "" then
+        settings.useDefaultMaterial = false
+        settings.selectedVariant = materialVariant
+        updateRadioButtons(false)
+        dropdown.Text = materialVariant
+    else
+        settings.useDefaultMaterial = true
+        settings.selectedMaterial = material.Name
+        updateRadioButtons(true)
+        dropdown.Text = material.Name
+    end
 
-	if color then
-		local r, g, b = math.floor(color.R * 255), math.floor(color.G * 255), math.floor(color.B * 255)
-		local h, s, v = color:ToHSV()
-		h, s, v = math.floor(h * 360), math.floor(s * 100), math.floor(v * 100)
+    if color then
+        local r, g, b = math.floor(color.R * 255), math.floor(color.G * 255), math.floor(color.B * 255)
+        local h, s, v = color:ToHSV()
+        h, s, v = math.floor(h * 360), math.floor(s * 100), math.floor(v * 100)
 
-		rTextBox.Text = tostring(r)
-		gTextBox.Text = tostring(g)
-		bTextBox.Text = tostring(b)
-		rSliderFill.Size = UDim2.new(color.R, 0, 1, 0)
-		gSliderFill.Size = UDim2.new(color.G, 0, 1, 0)
-		bSliderFill.Size = UDim2.new(color.B, 0, 1, 0)
+        rTextBox.Text = tostring(r)
+        gTextBox.Text = tostring(g)
+        bTextBox.Text = tostring(b)
+        rSliderFill.Size = UDim2.new(color.R, 0, 1, 0)
+        gSliderFill.Size = UDim2.new(color.G, 0, 1, 0)
+        bSliderFill.Size = UDim2.new(color.B, 0, 1, 0)
 
-		hTextBox.Text = tostring(h)
-		sTextBox.Text = tostring(s)
-		vTextBox.Text = tostring(v)
-		hSliderFill.Size = UDim2.new(h / 360, 0, 1, 0)
-		sSliderFill.Size = UDim2.new(s / 100, 0, 1, 0)
-		vSliderFill.Size = UDim2.new(v / 100, 0, 1, 0)
+        hTextBox.Text = tostring(h)
+        sTextBox.Text = tostring(s)
+        vTextBox.Text = tostring(v)
+        hSliderFill.Size = UDim2.new(h / 360, 0, 1, 0)
+        sSliderFill.Size = UDim2.new(s / 100, 0, 1, 0)
+        vSliderFill.Size = UDim2.new(v / 100, 0, 1, 0)
 
-		colorDisplay.BackgroundColor3 = color
+        colorDisplay.BackgroundColor3 = color
 
-		if settings.useDefaultMaterial then
-			settings.defaultColor = color
-		else
-			settings.variantColor = color
-		end
-	else
-		warn("色情報を取得できませんでした。")
-	end
+        if settings.useDefaultMaterial then
+            settings.defaultColor = color
+        else
+            settings.variantColor = color
+        end
+    else
+        warn("色情報を取得できませんでした。")
+    end
 
-	print("スポイト機能を使用しました。マテリアル:", material.Name, "バリアント:", materialVariant, "色:", color)
+    -- 反射率と透明度の設定
+    if reflectance then
+        settings.reflectance = reflectance
+        reflectanceTextBox.Text = string.format("%.2f", reflectance)
+        reflectanceSliderFill.Size = UDim2.new(reflectance, 0, 1, 0)
+    end
+
+    if transparency then
+        settings.transparency = transparency
+        transparencyTextBox.Text = string.format("%.2f", transparency)
+        transparencySliderFill.Size = UDim2.new(transparency, 0, 1, 0)
+    end
+
+    print("スポイト機能を使用しました。マテリアル:", material.Name, "バリアント:", materialVariant, "色:", color, "反射率:", reflectance, "透明度:", transparency)
 end
+
 
 -- MaterialAssigner
 local MaterialAssigner = {}
@@ -768,11 +783,28 @@ local function initializePlugin(plugin)
 		MaterialSelector.createDropdown(settings, widget, dropdown)
 	end)
 
-	eyedropperButton.MouseButton1Click:Connect(function()
-		Eyedropper.pickColor(settings, function(useDefaultMaterial) 
-			MaterialSelector.updateRadioButtons(useDefaultMaterial, defaultMaterialRadio, materialVariantRadio, dropdown)
-		end, dropdown, rTextBox, gTextBox, bTextBox, hTextBox, sTextBox, vTextBox, colorDisplay, rSliderFill, gSliderFill, bSliderFill, hSliderFill, sSliderFill, vSliderFill)
-	end)
+
+
+
+eyedropperButton.MouseButton1Click:Connect(function()
+    Eyedropper.pickColor(
+        settings,
+        function(useDefaultMaterial) 
+            MaterialSelector.updateRadioButtons(useDefaultMaterial, defaultMaterialRadio, materialVariantRadio, dropdown)
+        end,
+        dropdown,
+        rTextBox, gTextBox, bTextBox,
+        hTextBox, sTextBox, vTextBox,
+        colorDisplay,
+        rSliderFill, gSliderFill, bSliderFill,
+        hSliderFill, sSliderFill, vSliderFill,
+        ReflectanceTextBox, ReflectanceSliderFill,
+        TranceparencyTextBox, TranceparencySliderFill
+    )
+end)
+
+
+
 
 	applyButton.MouseButton1Click:Connect(function()
 		MaterialAssigner.assignMaterial(settings)
